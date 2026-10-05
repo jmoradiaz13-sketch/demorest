@@ -77,6 +77,19 @@ describe('MesasComponent', () => {
     expect(component.reservadas).toBe(1);
   });
 
+  it('should show libre on tables arriving without status (legacy docs)', () => {
+    component.tables = [
+      { _id: 'tx', number: 7, zona: 'Salón 1' },
+      { _id: 't0', number: 0, zona: 'Para llevar', status: 'libre' }
+    ];
+    fixture.detectChanges();
+    const badges: string[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.table-status')
+    ).map((el: any) => (el.textContent || '').trim());
+    expect(badges).toContain('libre');
+    expect(badges.some(b => b === '')).toBeFalse();
+  });
+
   it('should group tables by salon in order', () => {
     const grupos = component.grupos;
     expect(grupos.map(g => g.nombre)).toEqual(['Salón 1', 'Salón 2']);

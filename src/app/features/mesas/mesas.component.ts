@@ -38,7 +38,7 @@ import Swal from 'sweetalert2';
              (click)="onTableClick(t)">
           <div class="table-number" *ngIf="t.number !== 0">{{ t.number }}</div>
           <div class="table-number" *ngIf="t.number === 0">🛍️</div>
-          <div class="table-status">{{ t.status === 'reservada' ? 'mesa reservada' : (t.number === 0 ? 'Para llevar' : t.status) }}</div>
+          <div class="table-status">{{ t.status === 'reservada' ? 'mesa reservada' : (t.number === 0 ? 'Para llevar' : (t.status || 'libre')) }}</div>
           <div class="table-order" *ngIf="t.status === 'ocupada' && t.currentSale?.total">
             &#36;{{ t.currentSale.total | number:'1.0-0' }}
           </div>
