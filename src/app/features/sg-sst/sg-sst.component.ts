@@ -195,6 +195,13 @@ const LS_KEY = 'soupe-sgsst-v1';
     .prog-fill { background:linear-gradient(90deg,#ff9800,#ff5722); height:8px; border-radius:99px; }
     .prog-fill.gold { background:linear-gradient(90deg,var(--brand-gold),var(--brand-bronze)); }
     .cap-foot, .plan-foot { display:flex; justify-content:space-between; align-items:center; font-size:.78rem; }
+    /* TEXT-FIT SG-SST: que el espacio acompañe al texto (flex + min-width:0 + wrap) */
+    .ciclo-item > div, .stat-card > div,
+    .cap-top > *, .plan-top > *, .cap-foot > *, .plan-foot > * { min-width:0; }
+    .ciclo-item strong, .ciclo-item p, .cap-card h3, .plan-card h3,
+    .stat-label, .muted, .note { overflow-wrap:anywhere; }
+    .ciclo-item p, .cap-card h3, .plan-card h3 { line-height:1.35; }
+    .badge { flex-shrink:0; }
     .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; }
     .full-width { grid-column:1 / -1; }
     .badge-green { background:rgb(0 230 118 / 12%); color:#00C853; }
