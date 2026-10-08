@@ -43,6 +43,7 @@ import Swal from 'sweetalert2';
                     [class.other]="!dia.inMonth"
                     [class.today]="dia.key === hoyKey"
                     [class.selected]="dia.key === anchorKey"
+                    [class.pasado]="dia.pasado && dia.eventos.length === 0"
                     [class.dot]="dia.eventos.length > 0"
                     (click)="irDia(dia.key)">{{ dia.num }}</button>
           </div>
@@ -81,14 +82,15 @@ import Swal from 'sweetalert2';
                  class="cal-day"
                  [class.other-month]="!dia.inMonth"
                  [class.today]="dia.key === hoyKey"
+                 [class.pasado]="dia.pasado && dia.eventos.length === 0"
                  [class.has-events]="dia.eventos.length > 0"
                  (click)="abrirDia(dia)">
               <div class="cal-daynum" [class.today-badge]="dia.key === hoyKey">{{ dia.num }}</div>
               <div class="cal-events">
                 <div *ngFor="let ev of dia.eventos.slice(0, 3)"
                      class="cal-chip"
-                     [ngClass]="['chip-' + ev.status, 'tipo-' + ev.eventType]"
-                     title="{{ ev.customerName }} — {{ estadoLabel(ev.status) }}">
+                     [ngClass]="['chip-' + estadoVisible(ev), 'tipo-' + ev.eventType]"
+                     title="{{ ev.customerName }} — {{ estadoLabel(estadoVisible(ev)) }}">
                   <span class="chip-time">{{ horaCorta(ev.eventDate) }}</span>
                   <span class="chip-name">{{ ev.customerName }}</span>
                   <span class="chip-pax" *ngIf="ev.numberOfAttendees > 0">👥{{ ev.numberOfAttendees }}</span>
@@ -112,14 +114,14 @@ import Swal from 'sweetalert2';
               <div class="week-events">
                 <button *ngFor="let ev of dia.eventos"
                         class="week-ev"
-                        [ngClass]="['chip-' + ev.status, 'tipo-' + ev.eventType]"
-                        [attr.title]="(ev.theme || ev.customerName) + ' — ' + estadoLabel(ev.status)"
+                        [ngClass]="['chip-' + estadoVisible(ev), 'tipo-' + ev.eventType]"
+                        [attr.title]="(ev.theme || ev.customerName) + ' — ' + estadoLabel(estadoVisible(ev))"
                         (click)="abrirEvento(ev); $event.stopPropagation()">
                   <strong>{{ horaCorta(ev.eventDate) }}{{ ev.endDate ? ' → ' + horaCorta(ev.endDate) : '' }}</strong>
                   <span>{{ ev.theme || ev.customerName }}</span>
                   <span class="chip-pax" *ngIf="ev.numberOfAttendees > 0">👥 {{ ev.numberOfAttendees }}</span>
                 </button>
-                <div *ngIf="dia.eventos.length === 0" class="week-vacio" (click)="ofrecerAgendar(dia.date)" title="Agendar"></div>
+                <div *ngIf="dia.eventos.length === 0" class="week-vacio" [class.pasado]="dia.pasado" (click)="ofrecerAgendar(dia.date)" title="Agendar"></div>
               </div>
             </div>
           </div>
@@ -133,8 +135,8 @@ import Swal from 'sweetalert2';
               <div class="tl-slot">
                 <button *ngFor="let ev of eventosEnHora(h)"
                         class="tl-ev"
-                        [ngClass]="['chip-' + ev.status, 'tipo-' + ev.eventType]"
-                        [attr.title]="(ev.theme || ev.customerName) + ' — ' + estadoLabel(ev.status)"
+                        [ngClass]="['chip-' + estadoVisible(ev), 'tipo-' + ev.eventType]"
+                        [attr.title]="(ev.theme || ev.customerName) + ' — ' + estadoLabel(estadoVisible(ev))"
                         (click)="abrirEvento(ev)">
                   <strong>{{ horaCorta(ev.eventDate) }}{{ ev.endDate ? ' → ' + horaCorta(ev.endDate) : '' }}</strong>
                   <span>{{ ev.theme || ev.customerName }}</span>
@@ -146,7 +148,7 @@ import Swal from 'sweetalert2';
           </div>
           <div *ngIf="eventosDia.length === 0" class="cal-empty">
             No hay eventos este día.
-            <button class="btn btn-primary" style="margin-top:0.5rem" (click)="ofrecerAgendar(anchorDate)">¿Desea agendar evento?</button>
+            <button *ngIf="!esDiaPasado(anchorDate)" class="btn btn-primary" style="margin-top:0.5rem" (click)="ofrecerAgendar(anchorDate)">¿Desea agendar evento?</button>
           </div>
         </div>
       </div>
@@ -159,7 +161,7 @@ import Swal from 'sweetalert2';
           <div>
             <div class="drawer-kicker">{{ selectedEv.eventType === 'catering_externo' ? '🍱 CATERING' : '🎉 EVENTO' }}</div>
             <h2>{{ selectedEv.theme || selectedEv.customerName }}</h2>
-            <span class="prop-pill" [ngClass]="'pill-' + selectedEv.status">{{ estadoLabel(selectedEv.status) }}</span>
+            <span class="prop-pill" [ngClass]="'pill-' + estadoVisible(selectedEv)">{{ estadoLabel(estadoVisible(selectedEv)) }}</span>
           </div>
           <button class="close-btn" (click)="cerrarDrawer()">✕</button>
         </div>
@@ -224,7 +226,7 @@ import Swal from 'sweetalert2';
           <button *ngFor="let ev of eventosChooser" class="chooser-item" (click)="abrirEvento(ev)" [attr.title]="ev.theme || ev.customerName">
             <span class="chooser-time">{{ horaCorta(ev.eventDate) }}{{ ev.endDate ? ' → ' + horaCorta(ev.endDate) : '' }}</span>
             <span class="chooser-name">{{ ev.theme || ev.customerName }}</span>
-            <span class="prop-pill" [ngClass]="'pill-' + ev.status">{{ estadoLabel(ev.status) }}</span>
+            <span class="prop-pill" [ngClass]="'pill-' + estadoVisible(ev)">{{ estadoLabel(estadoVisible(ev)) }}</span>
           </button>
         </div>
       </div>
@@ -277,12 +279,15 @@ import Swal from 'sweetalert2';
               <input type="number" class="input-field" name="numberOfAttendees" [(ngModel)]="form.numberOfAttendees">
             </div>
           </div>
-          <div class="form-group" *ngIf="editingId">
-            <label>Costo Total (COP $)</label>
+          <div class="form-group">
+            <label>Monto del evento (COP $) *</label>
             <div class="price-input-wrap">
               <span class="price-prefix">$</span>
-              <input type="number" class="input-field price-input" name="totalCost" [(ngModel)]="form.totalCost" min="0" placeholder="Valor en pesos colombianos (COP)">
+              <input type="text" inputmode="numeric" class="input-field price-input" name="totalCost"
+                [value]="totalCostDisplay" (input)="onTotalCostInput($event)"
+                required minlength="1" placeholder="Ej. 1.500.000" autocomplete="off">
             </div>
+            <small class="field-hint" *ngIf="form.totalCost > 0">$ {{ form.totalCost.toLocaleString('es-CO') }} COP</small>
           </div>
           <div class="form-section">🍽️ Menú</div>
           <div class="form-group">
@@ -348,6 +353,7 @@ import Swal from 'sweetalert2';
       color: var(--brand-gold); font-weight: 700; font-size: 0.9rem;
     }
     .price-input { padding-left: 1.5rem !important; }
+    .field-hint { display: block; margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
     /* Modal formulario: encaja en pantalla con desplazamiento interno */
     .modal-content {
       background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
@@ -412,6 +418,11 @@ import Swal from 'sweetalert2';
     .cal-day.other-month .cal-daynum { color: #c9c9c9; }
     .cal-day.today { background: rgba(212, 175, 55, 0.05); }
     .cal-day.has-events { background: transparent; }
+    .cal-day.pasado { opacity: 0.55; cursor: default; }
+    .cal-day.pasado:hover { background: transparent; }
+    .mini-day.pasado { opacity: 0.45; }
+    .week-vacio.pasado { cursor: default; }
+    .week-vacio.pasado:hover { background: transparent; color: #c4c4c4; }
     .cal-daynum { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.2rem; text-align: right; }
     .today-badge {
       display: inline-block; background: #eb5757; color: #fff !important; font-weight: 700;
@@ -704,7 +715,7 @@ export class EventsComponent implements OnInit {
     for (let i = 0; i < 42; i++) {
       const f = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
       const key = this.fechaKey(f);
-      dias.push({ date: f, num: f.getDate(), key, inMonth: f.getMonth() === this.calMonth, eventos: porDia[key] || [] });
+      dias.push({ date: f, num: f.getDate(), key, inMonth: f.getMonth() === this.calMonth, eventos: porDia[key] || [], pasado: key < this.hoyKey });
     }
     return dias;
   }
@@ -717,6 +728,28 @@ export class EventsComponent implements OnInit {
     return labels[status] || status;
   }
 
+  // —— Días pasados: solo consulta ———————————————————————————————
+  // Compara por fecha-calendario (ignora la hora) en hora local.
+  esDiaPasado(fecha: Date | string): boolean {
+    const d = fecha instanceof Date ? fecha : new Date(fecha);
+    if (isNaN(d.getTime())) return false;
+    const hoy = new Date();
+    const dia = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const base = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).getTime();
+    return dia < base;
+  }
+
+  // Estado para mostrar: lo pasado no cancelado cuenta como realizado.
+  // Solo visual — no reescribe el estado guardado.
+  estadoVisible(ev: any): string {
+    if (!ev) return '';
+    if ((ev.status === 'pendiente' || ev.status === 'confirmado')
+      && ev.eventDate && this.esDiaPasado(ev.eventDate)) {
+      return 'realizado';
+    }
+    return ev.status;
+  }
+
   horaCorta(fecha: any): string {
     if (!fecha) return '';
     return new Date(fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -725,10 +758,15 @@ export class EventsComponent implements OnInit {
   // La creación: botón "+ Nuevo evento" abre sin fecha;
   // clic en día vacío pregunta "¿Desea agendar evento?" y pre-llena la fecha.
   // Clic en día con eventos abre el drawer (1 directo, varios vía selector).
+  // En días pasados NO se agenda: solo se consultan eventos ya registrados.
   abrirDia(dia: any): void {
     const lista = (dia.eventos || []).slice().sort((a: any, b: any) =>
       new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
     if (lista.length === 0) {
+      if (this.esDiaPasado(dia.date)) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'En días pasados no se pueden agendar eventos nuevos', timer: 2200, showConfirmButton: false });
+        return;
+      }
       this.ofrecerAgendar(dia.date);
       return;
     }
@@ -742,6 +780,10 @@ export class EventsComponent implements OnInit {
   }
 
   ofrecerAgendar(fecha: Date): void {
+    if (this.esDiaPasado(fecha)) {
+      Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'En días pasados no se pueden agendar eventos nuevos', timer: 2200, showConfirmButton: false });
+      return;
+    }
     const nombre = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())
       .toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
     Swal.fire({
@@ -907,7 +949,7 @@ export class EventsComponent implements OnInit {
     for (let i = 0; i < 7; i++) {
       const f = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
       const key = this.fechaKey(f);
-      dias.push({ date: f, num: f.getDate(), key, eventos: porDia[key] || [] });
+      dias.push({ date: f, num: f.getDate(), key, eventos: porDia[key] || [], pasado: key < this.hoyKey });
     }
     return dias;
   }
@@ -1135,6 +1177,20 @@ export class EventsComponent implements OnInit {
     });
   }
 
+    // —— Monto COP con separadores de miles ————————————————————————
+  get totalCostDisplay(): string {
+    const n = Number(this.form?.totalCost) || 0;
+    return n > 0 ? n.toLocaleString('es-CO') : '';
+  }
+
+  onTotalCostInput(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const digitos = (input.value || '').replace(/\D/g, '').slice(0, 12);
+    const n = parseInt(digitos, 10) || 0;
+    this.form.totalCost = n;
+    input.value = n > 0 ? n.toLocaleString('es-CO') : '';
+  }
+
   openForm(ev?: any, prefillDate?: Date): void {
     const aLocal = (v: any): { fecha: string; hora: string } => {
       if (!v) return { fecha: '', hora: '' };
@@ -1176,6 +1232,12 @@ export class EventsComponent implements OnInit {
   }
 
   saveEvent(): void {
+    const monto = Number(this.form?.totalCost) || 0;
+    if (!(monto > 0)) {
+      Swal.fire('Monto requerido', 'Ingresa el monto del evento en COP (mayor a 0).', 'warning');
+      return;
+    }
+    this.form.totalCost = monto;
     this.saving = true;
     const payload = { ...this.form };
     const combinar = (hora: string): string => {
@@ -1281,6 +1343,7 @@ export class EventsComponent implements OnInit {
             <label>Método de Pago</label>
             <select id="pay-method" class="swal2-select" style="width:100%;box-sizing:border-box;">
               <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta / Datáfono</option>
               <option value="transferencia">Transferencia</option>
               <option value="mixto">Mixto</option>
             </select>

@@ -217,6 +217,12 @@ export class ApiService {
     );
   }
 
+  addCashMovement(id: string, data: { tipo: 'entrada' | 'salida'; amount: number; concept: string; method?: 'efectivo' | 'tarjeta' | 'transferencia' }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/cash-closings/${id}/movements`, data).pipe(
+      tap(() => this.preload.invalidate('current-cash'))
+    );
+  }
+
   getCashClosings(params?: any): Observable<any> {
     return this.http.get(`${this.baseUrl}/cash-closings`, { params });
   }

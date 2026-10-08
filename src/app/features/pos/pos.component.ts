@@ -117,6 +117,7 @@ import Swal from 'sweetalert2';
           <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
             <select class="form-input" [(ngModel)]="paymentMethod" style="flex:1">
               <option value="efectivo">💵 Efectivo</option>
+              <option value="tarjeta">💳 Tarjeta / Datáfono</option>
               <option value="transferencia">📱 Transferencia</option>
               <option value="mixto">🔄 Mixto</option>
             </select>
